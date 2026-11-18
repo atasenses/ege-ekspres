@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ege Ekspres - Kampüs Haber Oyunu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #060b19;
+            color: #f1f5f9;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .blue-gradient-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 55%, #0f172a 100%);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+        .blue-btn {
+            background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+            cursor: pointer;
+        }
+        .blue-btn:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+        .blue-btn:disabled {
+            background: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+            border: 1px solid #334155;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 6px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-2 sm:p-6">
+
+    <!-- Mobil Cihaz Çerçevesi -->
+    <div class="w-full max-w-md bg-[#0b132b] rounded-[38px] shadow-2xl border-4 border-[#1e293b] overflow-hidden flex flex-col min-h-[860px] relative">
+
+        <!-- ÜST BAR -->
+        <header class="px-5 py-3.5 flex items-center justify-between border-b border-blue-900/40 bg-[#0b132b] sticky top-0 z-30">
+            <button type="button" onclick="goHome()" class="flex items-center space-x-2.5 text-left">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg">
+                    <span class="text-white font-bold text-sm">🎙️</span>
+                </div>
+                <div>
+                    <span class="font-extrabold tracking-tight text-base text-white">ege</span>
+                    <span class="font-extrabold tracking-widest text-xs text-cyan-400 ml-0.5">EKSPRES</span>
+                </div>
+            </button>
+
+            <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="showScreen('screen-diary')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/20 text-xs font-semibold">
+                    📖 Günlük
+                </button>
+                <button type="button" onclick="openAdminModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 border border-blue-500/20 text-xs">
+                    🔒
+                </button>
+                <div id="xp-badge" class="hidden items-center space-x-1.5 bg-slate-900 border border-cyan-500/30 px-2.5 py-1.5 rounded-full text-xs font-bold text-cyan-300">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    <span id="xp-text">0 / 330 XP</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- BİLDİRİM KUTUSU (TOAST) -->
+        <div id="toast-box" class="hidden mx-4 mt-3 p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between z-40">
+            <span id="toast-msg"></span>
+            <button type="button" onclick="hideToast()" class="ml-2 font-bold px-1">✕</button>
+        </div>
+
+        <!-- ANA İÇERİK ALANI -->
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
+
+            <!-- ========================================== -->
+            <!-- EKRAN 1: AJANS KURMA (BAŞLANGIÇ EKRANI)    -->
+            <!-- ========================================== -->
+            <section id="screen-welcome" class="space-y-6 py-2">
+                <div class="blue-gradient-card p-6 rounded-3xl shadow-xl space-y-4">
+                    <div class="inline-flex items-center space-x-2 bg-blue-950/60 border border-cyan-400/30 px-3 py-1 rounded-full">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        <span class="text-[11px] font-bold tracking-wider uppercase text-cyan-300">Saha Görevi Rehberi</span>
+                    </div>
+                    <h1 class="text-3xl font-extrabold text-white leading-tight">Kampüs bugün senin haber sahan.</h1>
+                    <p class="text-xs text-blue-100/90 leading-relaxed">
+                        Ajansını kur. Her görevde önce bilmeceyi çöz, yol tarifini takip et, QR kodu okut ve haberini sahadan bildir.
+                    </p>
+                    <div class="bg-slate-950/75 border border-cyan-400/30 rounded-2xl p-3.5 space-y-1">
+                        <span class="inline-block bg-cyan-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">EGE EKSPRES</span>
+                        <p id="live-agency-preview" class="text-sm font-bold text-white truncate">Ajansınızın adı burada yayınlanacak</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-3xl space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-cyan-300 uppercase tracking-wider mb-2">Ajans adı</label>
+                        <input type="text" id="agency-name-input" placeholder="Örnek: Bornova Haber Ajansı"
+                            oninput="previewAgencyName()"
+                            onkeydown="if(event.key==='Enter') createAgency()"
+                            class="w-full bg-slate-900 border border-blue-800 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+                    </div>
+                    <button type="button" onclick="createAgency()" class="w-full blue-btn text-white font-bold py-3.5 rounded-2xl shadow-lg text-sm tracking-wide">
+                        Ajansı kur
+                    </button>
+                    <p class="text-[11px] text-slate-400 text-center">
+                        Bu adımı oyunu oynayacağın telefonda ve tarayıcıda yap. İlerlemen bu cihazda saklanır.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-card p-4 rounded-2xl space-y-1.5">
+                        <span class="w-6 h-6 rounded-lg bg-blue-600/30 text-cyan-300 font-bold text-xs flex items-center justify-center">1</span>
+                        <h3 class="font-bold text-xs text-white">Bilmeceyi çöz</h3>
+                        <p class="text-[11px] text-slate-400">Cevap, görevin yapılacağı gizli yeri söyler.</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl space-y-1.5">
+                        <span class="w-6 h-6 rounded-lg bg-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center justify-center">2</span>
+                        <h3 class="font-bold text-xs text-white">Yol tarifini takip et</h3>
+                        <p class="text-[11px] text-slate-400">Doğru cevapla birlikte konum ve harita açılır.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- EKRAN 2: ANA PANEL (AJANS KARTI & BÜLTEN)  -->
+            <!-- ========================================== -->
+            <section id="screen-home" class="hidden space-y-5">
+                <!-- Ajans Kartı -->
+                <div class="blue-gradient-card p-5 rounded-3xl shadow-xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="bg-white text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded uppercase">BASIN</span>
+                        <span class="text-xs text-cyan-200 font-semibold">Ajans kartı</span>
+                    </div>
+                    <div>
+                        <h2 id="home-agency-name" class="text-2xl font-extrabold text-white">Bornova Haber Ajansı</h2>
+                        <p id="home-agency-rank" class="text-xs text-cyan-200 font-semibold mt-0.5">Yeni ajans</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="w-full bg-slate-950/60 h-2.5 rounded-full overflow-hidden p-0.5">
+                            <div id="home-progress-bar" class="bg-gradient-to-r from-cyan-400 to-blue-300 h-full rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs font-bold text-blue-100">
+                            <span id="home-progress-text">0/4 görev tamam</span>
+                            <span id="home-xp-text">0 XP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canlı Bülten -->
+                <div class="glass-card p-4 rounded-3xl space-y-3 border-cyan-500/40">
+                    <div class="flex items-center justify-between text-[11px] font-bold">
+                        <span id="bulletin-status-badge" class="text-slate-400">● YAYIN BEKLENİYOR</span>
+                        <span id="clock-time" class="font-mono text-cyan-400">--:--:--</span>
+                    </div>
+                    <div id="bulletin-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                        <p class="text-xs text-slate-400 py-2">Bülten boş. Gönderdiğin her haberin manşeti burada ajansının adıyla yayınlanır.</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="inline-block bg-cyan-500 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded uppercase">BÜLTEN</span>
+                        <span id="bulletin-count-text" class="text-[11px] text-slate-400">0/4 Manşet Yayında</span>
+                    </div>
+                </div>
+
+                <!-- Görevler Listesi -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between px-1">
+                        <h3 class="text-base font-extrabold text-white">Görevler</h3>
+                        <span class="text-xs text-slate-400">Sırayla açılır</span>
+                    </div>
+                    <div id="home-tasks-list" class="space-y-2.5"></div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- EKRAN 3: GÖREV DETAY EKRANI (4 ADIM)       -->
+            <!-- ========================================== -->
+            <section id="screen-task" class="hidden space-y-5">
+                <div class="space-y-2">
+                    <button type="button" onclick="goHome()" class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-300 font-bold">‹</button>
+                    <div class="flex items-center space-x-2 pt-1">
+                        <span id="task-number-badge" class="bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">Görev 1/4</span>
+                        <span id="task-step-badge" class="bg-slate-800 text-cyan-300 text-xs font-semibold px-3 py-1 rounded-full border border-cyan-500/20">Bilmeceyi çöz</span>
+                    </div>
+                    <h1 id="task-header-title" class="text-2xl font-extrabold text-white">Konum gizli</h1>
+                </div>
+
+                <!-- ADIM 1: BİLMECE -->
+                <div class="glass-card p-5 rounded-3xl space-y-3.5 border-blue-500/30">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">1</span>
+                        <h2 class="text-base font-extrabold text-white">Bilmece</h2>
+                    </div>
+                    <div class="bg-slate-900 border border-blue-900/60 p-4 rounded-2xl">
+                        <p id="task-riddle-text" class="text-sm font-semibold text-blue-100 leading-relaxed"></p>
+                    </div>
+
+                    <div id="riddle-form-area" class="space-y-2">
+                        <div class="flex space-x-2">
+                            <input type="text" id="riddle-input" placeholder="Cevabını yaz..."
+                                onkeydown="if(event.key==='Enter') checkRiddleAnswer()"
+                                class="flex-1 bg-slate-900 border border-blue-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                            <button type="button" onclick="checkRiddleAnswer()" class="blue-btn text-white font-bold px-5 py-3 rounded-2xl text-sm">Cevapla</button>
+                        </div>
+                        <p id="riddle-hint-text" class="text-[11px] text-slate-400">Büyük-küçük harf önemli değil. İki yanlış cevaptan sonra ipucu açılır.</p>
+                    </div>
+
+                    <div id="riddle-solved-area" class="hidden bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-2xl text-xs font-bold text-emerald-300"></div>
+                </div>
+
+                <!-- ADIM 2: YOL TARİFİ -->
+                <div id="step2-card" class="glass-card p-5 rounded-3xl space-y-3.5 opacity-40 pointer-events-none">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">2</span>
+                        <h2 class="text-base font-extrabold text-white">Yol tarifi</h2>
+                    </div>
+                    <p id="task-route-text" class="text-xs text-slate-300 leading-relaxed">Bilmeceyi çözdüğünde yol tarifi burada açılır.</p>
+                    <a id="task-map-link" href="#" target="_blank" class="inline-flex items-center space-x-2 bg-slate-800 border border-cyan-500/30 text-cyan-300 font-bold px-4 py-2.5 rounded-2xl text-xs">
+                        <span>🗺️ Haritada aç</span>
+                    </a>
+                </div>
+
+                <!-- ADIM 3: QR KODU OKUT -->
+                <div id="step3-card" class="glass-card p-5 rounded-3xl space-y-3.5 opacity-40 pointer-events-none">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">3</span>
+                        <h2 class="text-base font-extrabold text-white">QR kodu okut</h2>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Lokasyondaki QR görselini seçerek tarat veya QR altındaki kısa kodu kutuya yaz:
+                    </p>
+
+                    <div id="qr-form-area" class="space-y-3">
+                        <div class="bg-slate-900 border border-blue-800/60 p-3 rounded-2xl space-y-2">
+                            <label class="block text-[11px] font-bold text-cyan-300 uppercase">📷 Kamera ile QR Tara veya QR Görseli Seç</label>
+                            <input type="file" id="qr-file-input" accept="image/*" onchange="scanQrFile(this)"
+                                class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white cursor-pointer">
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="short-code-input" placeholder="KOD (Örn: EGE-101)"
+                                onkeydown="if(event.key==='Enter') verifyShortCodeInput()"
+                                class="flex-1 bg-slate-900 border border-blue-700 rounded-2xl px-4 py-3 text-sm font-mono uppercase text-white focus:outline-none focus:border-cyan-400">
+                            <button type="button" onclick="verifyShortCodeInput()" class="blue-btn text-white font-bold px-5 py-3 rounded-2xl text-sm">Aç</button>
+                        </div>
+                    </div>
+
+                    <div id="qr-verified-area" class="hidden bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-2xl text-xs font-bold text-emerald-300"></div>
+                </div>
+
+                <!-- ADIM 4: KANIT YÜKLE -->
+                <div id="step4-card" class="glass-card p-5 rounded-3xl space-y-4 opacity-40 pointer-events-none">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">4</span>
+                            <h2 class="text-base font-extrabold text-white">Kanıt yükle</h2>
+                        </div>
+                        <span id="task-xp-pill" class="bg-slate-800 border border-cyan-500/30 text-cyan-300 text-xs font-bold px-3 py-1 rounded-full">Orta • +60 XP</span>
+                    </div>
+
+                    <h3 id="task-assignment-title" class="text-lg font-extrabold text-white"></h3>
+
+                    <div class="bg-slate-900 border border-blue-800/70 p-4 rounded-2xl space-y-2">
+                        <span class="text-[10px] font-extrabold text-cyan-400 uppercase">EDİTÖRDEN GÖREV NOTU</span>
+                        <p id="task-editor-note" class="text-xs text-slate-200 leading-relaxed"></p>
+                    </div>
+
+                    <button type="button" onclick="listenEditorNote()" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 font-bold px-4 py-2 rounded-2xl text-xs">
+                        <span>▶ Görevi dinle</span>
+                    </button>
+
+                    <!-- Dikkat Etmen Gerekenler -->
+                    <div class="bg-blue-950/40 border border-cyan-500/30 p-4 rounded-2xl space-y-2">
+                        <h4 class="text-xs font-bold text-white">Dikkat etmen gerekenler</h4>
+                        <ul id="task-tips-list" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
+                    </div>
+
+                    <!-- 1. İzin Onayı -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">İzin onayı</span>
+                            <span id="badge-consent"></span>
+                        </div>
+                        <label class="flex items-start space-x-2.5 cursor-pointer text-xs text-slate-300">
+                            <input type="checkbox" id="ev-consent" onchange="onEvidenceChange()" class="mt-0.5 w-4 h-4 accent-cyan-400 rounded">
+                            <span>Röportaj veren ya da görüntüde tanınan kişiden kayıt ve yayın izni aldığımı onaylıyorum.</span>
+                        </label>
+                    </div>
+
+                    <!-- 2. Haber Fotoğrafı -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Haber fotoğrafı</span>
+                            <span id="badge-photo"></span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Haberi anlatan net bir kare. Hassas durumlarda yüzler görünmemeli.</p>
+                        <input type="file" id="ev-photo-input" accept="image/*,video/*" onchange="onPhotoSelected(this)"
+                            class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-cyan-300 cursor-pointer">
+                        <p id="ev-photo-error" class="hidden text-xs font-bold text-red-400"></p>
+                        <div id="ev-photo-info" class="hidden items-center justify-between bg-slate-950 p-2.5 rounded-xl text-xs text-emerald-300">
+                            <span id="ev-photo-name" class="truncate"></span>
+                            <button type="button" onclick="clearPhoto()" class="text-red-400 font-bold ml-2">Kaldır</button>
+                        </div>
+                    </div>
+
+                    <!-- 3. 5N1K Kartı -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">5N1K kartı</span>
+                            <span id="badge-5n1k"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="w-ne" placeholder="Ne oldu?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <input type="text" id="w-kim" placeholder="Kim?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <input type="text" id="w-nerede" placeholder="Nerede?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <input type="text" id="w-nezaman" placeholder="Ne zaman?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <input type="text" id="w-nasil" placeholder="Nasıl?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <input type="text" id="w-neden" placeholder="Neden?" oninput="onEvidenceChange()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                        </div>
+                    </div>
+
+                    <!-- 4. Haber Metni -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Haber metni</span>
+                            <span id="badge-newstext"></span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Giriş (5N1K), kaynakların sözleri ve kapanış. En az 300 karakter.</p>
+                        <textarea id="ev-newstext" rows="5" placeholder="Haber metnini buraya yaz..." oninput="onEvidenceChange()"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white custom-scrollbar"></textarea>
+                        <div id="counter-newstext" class="text-right text-[11px] font-mono text-cyan-400">0 / en az 300 karakter</div>
+                    </div>
+
+                    <!-- 5. Röportaj Kaydı (İsteğe Bağlı) -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Röportaj kaydı</span>
+                            <span class="text-[11px] font-semibold text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded-full">İsteğe bağlı</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Video ya da ses, en az 20 saniye.</p>
+                        <input type="file" id="ev-media-input" accept="audio/*,video/*" onchange="onMediaSelected(this)"
+                            class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-cyan-300 cursor-pointer">
+                        <p id="ev-media-error" class="hidden text-xs font-bold text-red-400"></p>
+                        <div id="ev-media-info" class="hidden items-center justify-between bg-slate-950 p-2.5 rounded-xl text-xs text-emerald-300">
+                            <span id="ev-media-name" class="truncate"></span>
+                            <button type="button" onclick="clearMedia()" class="text-red-400 font-bold ml-2">Kaldır</button>
+                        </div>
+                    </div>
+
+                    <!-- 6. Manşet -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Manşet</span>
+                            <span id="badge-headline"></span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Haberin başlığı. Bültende ajansının adıyla yayınlanır (20–80 karakter).</p>
+                        <input type="text" id="ev-headline" maxlength="90" placeholder="Örn: Kütüphane sınav haftasında gece gündüz açık" oninput="onEvidenceChange()"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white">
+                        <div id="counter-headline" class="text-right text-[11px] font-mono text-cyan-400">0 karakter (20–80)</div>
+                    </div>
+
+                    <!-- Gönder ve Sonraki Görev Düğmeleri -->
+                    <div class="space-y-2 pt-2">
+                        <p id="missing-summary" class="text-xs font-semibold text-amber-300"></p>
+                        <button type="button" id="submit-evidence-btn" onclick="submitTaskEvidence()" disabled
+                            class="w-full blue-btn text-white font-bold py-3.5 rounded-2xl shadow-lg text-sm">
+                            Kanıtı gönder
+                        </button>
+                        <button type="button" id="next-task-btn" onclick="goNextTask()" disabled
+                            class="w-full py-3 rounded-2xl font-bold text-xs border bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed">
+                            Sonraki göreve geç →
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- EKRAN 4: PROMPT GÜNLÜĞÜ                    -->
+            <!-- ========================================== -->
+            <section id="screen-diary" class="hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="goHome()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-cyan-300 text-xs font-bold">← Geri</button>
+                    <button type="button" onclick="copyDiaryReport()" class="blue-btn text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">📋 Raporu Kopyala</button>
+                </div>
+                <h1 class="text-xl font-extrabold text-white">05 • Prompt Günlüğü</h1>
+                <p class="text-xs text-slate-400">Görevler boyunca yapay zekâyı yardımcı editör gibi kullandığın 3 anı buraya kaydet.</p>
+
+                <div class="glass-card p-4 rounded-3xl space-y-2">
+                    <span class="text-xs font-extrabold text-cyan-300">1. SAHAYA ÇIKMADAN (RÖPORTAJ SORU LİSTESİ)</span>
+                    <textarea id="diary-p1" rows="2" oninput="saveDiaryInputs()" placeholder="Yazdığım prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-r1" rows="2" oninput="saveDiaryInputs()" placeholder="Cevap özeti ve eksikler..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-d1" rows="2" oninput="saveDiaryInputs()" placeholder="Karar ve düzeltilmiş prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                </div>
+
+                <div class="glass-card p-4 rounded-3xl space-y-2">
+                    <span class="text-xs font-extrabold text-cyan-300">2. HABER METNİNİ YAZDIKTAN SONRA (5N1K KONTROLÜ)</span>
+                    <textarea id="diary-p2" rows="2" oninput="saveDiaryInputs()" placeholder="Yazdığım prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-r2" rows="2" oninput="saveDiaryInputs()" placeholder="Cevap özeti ve eksikler..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-d2" rows="2" oninput="saveDiaryInputs()" placeholder="Karar ve düzeltilmiş prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                </div>
+
+                <div class="glass-card p-4 rounded-3xl space-y-2">
+                    <span class="text-xs font-extrabold text-cyan-300">3. MANŞETTEN ÖNCE (MANŞET SEÇENEKLERİ)</span>
+                    <textarea id="diary-p3" rows="2" oninput="saveDiaryInputs()" placeholder="Yazdığım prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-r3" rows="2" oninput="saveDiaryInputs()" placeholder="Cevap özeti ve eksikler..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                    <textarea id="diary-d3" rows="2" oninput="saveDiaryInputs()" placeholder="Karar ve düzeltilmiş prompt..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- EKRAN 5: GÖREVLİ / YÖNETİCİ PANELİ         -->
+            <!-- ========================================== -->
+            <section id="screen-admin" class="hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="goHome()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-cyan-300 text-xs font-bold">← Dön</button>
+                    <button type="button" onclick="resetGameData()" class="bg-red-600 hover:bg-red-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">🗑️ İlerlemeyi Sıfırla</button>
+                </div>
+                <h1 class="text-xl font-extrabold text-white">Görevli Yönetim Paneli</h1>
+                <p class="text-xs text-slate-400">Her lokasyonun bilmece cevabı, kısa yedek kodu ve tek tıkla QR doğrulama butonları:</p>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-900 border border-blue-800/60 p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between"><span class="text-xs font-bold text-cyan-400">Görev 1: Merkez Kütüphane</span><span class="font-mono text-xs font-bold text-white">EGE-101</span></div>
+                        <p class="text-xs text-slate-300">Bilmece Cevabı: <b>KÜTÜPHANE</b></p>
+                        <button type="button" onclick="handleQrCode('EGE-101')" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold py-2 rounded-xl">⚡ EGE-101 QR Kodunu Doğrula</button>
+                    </div>
+                    <div class="bg-slate-900 border border-blue-800/60 p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between"><span class="text-xs font-bold text-cyan-400">Görev 2: Kampüs Kafeterya</span><span class="font-mono text-xs font-bold text-white">EGE-202</span></div>
+                        <p class="text-xs text-slate-300">Bilmece Cevabı: <b>KAFETERYA</b></p>
+                        <button type="button" onclick="handleQrCode('EGE-202')" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold py-2 rounded-xl">⚡ EGE-202 QR Kodunu Doğrula</button>
+                    </div>
+                    <div class="bg-slate-900 border border-blue-800/60 p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between"><span class="text-xs font-bold text-cyan-400">Görev 3: Gençlik Merkezi</span><span class="font-mono text-xs font-bold text-white">EGE-303</span></div>
+                        <p class="text-xs text-slate-300">Bilmece Cevabı: <b>GENÇLİK MERKEZİ</b></p>
+                        <button type="button" onclick="handleQrCode('EGE-303')" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold py-2 rounded-xl">⚡ EGE-303 QR Kodunu Doğrula</button>
+                    </div>
+                    <div class="bg-slate-900 border border-blue-800/60 p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between"><span class="text-xs font-bold text-cyan-400">Görev 4: Rektörlük Meydanı</span><span class="font-mono text-xs font-bold text-white">EGE-404</span></div>
+                        <p class="text-xs text-slate-300">Bilmece Cevabı: <b>REKTÖRLÜK</b></p>
+                        <button type="button" onclick="handleQrCode('EGE-404')" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold py-2 rounded-xl">⚡ EGE-404 QR Kodunu Doğrula</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ALT BİLGİ -->
+        <footer class="py-2.5 px-4 text-center text-[11px] text-slate-400 border-t border-blue-900/30 bg-[#080e20] flex items-center justify-between">
+            <span>Ege Ekspres Saha Rehberi</span>
+            <span class="text-cyan-400 font-semibold">Mobil Muhabir Sürümü</span>
+        </footer>
+    </div>
+
+    <script>
+        var TASKS = {
+            1: {
+                id: 1,
+                locationName: "Merkez Kütüphane",
+                assignmentTitle: "Sınav haftası mesaisi",
+                difficulty: "Orta",
+                xp: 60,
+                shortCode: "EGE-101",
+                riddle: "Rafları kilometrelerce uzar, fısıltıyla konuşulur içimde. Sınav haftası hiç boş kalmam, binlerce kitap bekler beni. Neresi?",
+                answers: ["kutuphane", "merkez kutuphane"],
+                hint: "İpucu: Kampüste binlerce kitabın bulunduğu, sınav haftası gece gündüz ders çalışılan sessiz bina.",
+                route: "Kampüs ana kavşağından kültür caddesini takip et. Fen Fakültesi'ni geçtikten sonra sağdaki geniş merdivenli cam binanın ana girişine ilerle.",
+                mapUrl: "https://maps.google.com/?q=Ege+Universitesi+Merkez+Kutuphanesi",
+                editorNote: "Sınav haftasında kütüphanenin 24 saat açık kalma uygulamasını haberleştir. Bir görevli veya öğrenciyle görüşüp doluluk oranını ve talepleri (priz, sessiz alan vb.) öğren.",
+                tips: ["Kaynağa nasıl ulaştığın da haberin parçasıdır.", "Duyduğunu değil doğruladığını yaz.", "Adları ve unvanları doğru kaydet."]
+            },
+            2: {
+                id: 2,
+                locationName: "Kampüs Kafeterya",
+                assignmentTitle: "Öğle arası yoğunluğu ve menüler",
+                difficulty: "Orta",
+                xp: 80,
+                shortCode: "EGE-202",
+                riddle: "Sabahları mis kokulu çaylar kaynar, tepsiler ardı ardına dizilir. Öğle arası kalabalıktan adım atılmaz, tüm fakülteler burada buluşur. Neresi?",
+                answers: ["kafeterya", "kampus kafeterya", "yemekhane", "kantin"],
+                hint: "İpucu: Öğrencilerin öğle yemeği ve çay molası için en yoğun kullandığı merkezi yemek alanı.",
+                route: "Merkez Kütüphane'den güneye inen çınarlı yürüyüş yolunu izle. Öğrenci Köyü kavşağındaki iki katlı sosyal tesis binasının girişine git.",
+                mapUrl: "https://maps.google.com/?q=Ege+Universitesi+Kafeterya",
+                editorNote: "Öğle saatlerinde yemekhane ve kafeteryadaki sıra bekleme sürelerini, menü çeşitliliğini ve öğrenci bütçesine etkisini araştır.",
+                tips: ["Sayısal verileri bizzat gözlemleyerek doğrula.", "Hem öğrenci hem çalışan görüşüne yer ver.", "Kayda giren kişilerden mutlaka izin onayı al."]
+            },
+            3: {
+                id: 3,
+                locationName: "Gençlik Merkezi",
+                assignmentTitle: "Öğrenci toplulukları sahada",
+                difficulty: "Zor",
+                xp: 90,
+                shortCode: "EGE-303",
+                riddle: "Kulüplerin buluştuğu, afişlerin asıldığı, prova ve gitar seslerinin hiç eksik olmadığı renkli çatı altı. Neresi?",
+                answers: ["genclik merkezi", "kultur merkezi", "ogrenci merkezi"],
+                hint: "İpucu: Öğrenci kulüplerinin ve kültür-sanat topluluklarının etkinlik hazırlığı yaptığı bina.",
+                route: "Kafeteryadan çıkıp spor salonu yönüne yürü. İlan panolarının bulunduğu ağaçlıklı meydandaki turkuaz girişli binaya ulaş.",
+                mapUrl: "https://maps.google.com/?q=Ege+Universitesi+Genclik+Merkezi",
+                editorNote: "Yaklaşan kampüs şenlikleri öncesinde öğrenci topluluklarının hazırlıklarını yerinde incele. Bir topluluk üyesiyle röportaj yap.",
+                tips: ["Röportajda Evet/Hayır ile bitecek kapalı sorular sorma.", "Topluluğun tam adını ve konuştuğun kişinin görevini yaz.", "Fotoğrafta hazırlık anını net biçimde belgele."]
+            },
+            4: {
+                id: 4,
+                locationName: "Rektörlük Meydanı",
+                assignmentTitle: "Kampüste ulaşım ve yeşil alan",
+                difficulty: "Zor",
+                xp: 100,
+                shortCode: "EGE-404",
+                riddle: "Kampüsün kalbinin attığı yer, dev bayrağın dalgalandığı en geniş alan. Törenlerin, buluşmaların ve mezuniyet sevincinin ilk adresi. Neresi?",
+                answers: ["rektorluk", "rektorluk meydani", "ana meydan"],
+                hint: "İpucu: Kampüsün ana giriş kapısına yakın, törenlerin yapıldığı büyük anıtsal meydan.",
+                route: "Gençlik Merkezi'nden ana bulvara çık ve Bornova metrosu yönüne doğru ilerle. Havuzlu büyük tören alanının ortasındaki bilgi noktasına var.",
+                mapUrl: "https://maps.google.com/?q=Ege+Universitesi+Rektorluk",
+                editorNote: "Final görevinde kampüs içi bisiklet yolları, ring seferleri ve yaya güvenliği konusunu ele al. Öğrencilerin en büyük ulaşım talebini manşete taşı.",
+                tips: ["Haberin ilk cümlesinde en çarpıcı bulguyu özetle.", "Trafik veya ders akışını engellemeden kayıt al.", "Manşetin 20-80 karakter arasında olmasına dikkat et."]
+            }
+        };
+
+        var STORAGE_KEY = "ege_ekspres_clean_v4";
+        var activeTaskId = 1;
+
+        function makeDefaultState() {
+            return {
+                agencyName: "",
+                xp: 0,
+                tasks: {
+                    1: makeTaskObj(true),
+                    2: makeTaskObj(false),
+                    3: makeTaskObj(false),
+                    4: makeTaskObj(false)
+                },
+                bulletin: [],
+                diary: { p1:"", r1:"", d1:"", p2:"", r2:"", d2:"", p3:"", r3:"", d3:"" }
+            };
+        }
+
+        function makeTaskObj(unlocked) {
+            return {
+                unlocked: unlocked,
+                completed: false,
+                riddleSolved: false,
+                wrongAttempts: 0,
+                qrVerified: false,
+                consent: false,
+                photoName: "",
+                photoError: "",
+                w5h1: { ne:"", kim:"", nerede:"", nezaman:"", nasil:"", neden:"" },
+                newsText: "",
+                mediaName: "",
+                mediaDuration: 0,
+                mediaError: "",
+                headline: ""
+            };
+        }
+
+        var state = makeDefaultState();
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                if (parsed && parsed.tasks) state = parsed;
+            }
+        } catch (e) {}
+
+        function saveState() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        function cleanTurkish(str) {
+            return (str || "")
+                .toLowerCase()
+                .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
+                .replace(/ı/g, "i").replace(/İ/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
+                .trim();
+        }
+
+        function showToast(msg, type) {
+            var box = document.getElementById("toast-box");
+            var txt = document.getElementById("toast-msg");
+            box.className = "mx-4 mt-3 p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between z-40 ";
+            if (type === "error") box.className += "bg-red-950 border-red-500 text-red-200";
+            else if (type === "success") box.className += "bg-emerald-950 border-emerald-500 text-emerald-200";
+            else box.className += "bg-blue-950 border-cyan-400 text-cyan-200";
+            txt.textContent = msg;
+            box.classList.remove("hidden");
+        }
+
+        function hideToast() {
+            document.getElementById("toast-box").classList.add("hidden");
+        }
+
+        function showScreen(screenId) {
+            var screens = ["screen-welcome", "screen-home", "screen-task", "screen-diary", "screen-admin"];
+            for (var i = 0; i < screens.length; i++) {
+                document.getElementById(screens[i]).classList.add("hidden");
+            }
+            document.getElementById(screenId).classList.remove("hidden");
+
+            var badge = document.getElementById("xp-badge");
+            if (state.agencyName) {
+                badge.classList.remove("hidden");
+                badge.classList.add("flex");
+                document.getElementById("xp-text").textContent = state.xp + " / 330 XP";
+            } else {
+                badge.classList.add("hidden");
+            }
+        }
+
+        function previewAgencyName() {
+            var val = document.getElementById("agency-name-input").value.trim();
+            document.getElementById("live-agency-preview").textContent = val || "Ajansınızın adı burada yayınlanacak";
+        }
+
+        function createAgency() {
+            var val = document.getElementById("agency-name-input").value.trim();
+            if (val.length < 2) {
+                showToast("Lütfen geçerli bir ajans adı yazın!", "error");
+                return;
+            }
+            state.agencyName = val;
+            saveState();
+            showToast(val + " kuruldu! Görev 1'e başlayabilirsin.", "success");
+            goHome();
+        }
+
+        function goHome() {
+            if (!state.agencyName) {
+                showScreen("screen-welcome");
+                return;
+            }
+            refreshHomeUI();
+            showScreen("screen-home");
+        }
+
+        function refreshHomeUI() {
+            document.getElementById("home-agency-name").textContent = state.agencyName;
+            var completedCount = 0;
+            for (var i = 1; i <= 4; i++) {
+                if (state.tasks[i].completed) completedCount++;
+            }
+
+            var rank = "Yeni ajans";
+            if (completedCount === 4) rank = "⭐ Bültenin yıldızı";
+            else if (completedCount >= 1) rank = "Saha ekibi";
+
+            document.getElementById("home-agency-rank").textContent = rank;
+            document.getElementById("home-progress-bar").style.width = ((completedCount / 4) * 100) + "%";
+            document.getElementById("home-progress-text").textContent = completedCount + "/4 görev tamam";
+            document.getElementById("home-xp-text").textContent = state.xp + " XP";
+
+            // Bülten listesi
+            var bList = document.getElementById("bulletin-list");
+            var bStatus = document.getElementById("bulletin-status-badge");
+            document.getElementById("bulletin-count-text").textContent = state.bulletin.length + "/4 Manşet Yayında";
+
+            if (state.bulletin.length === 0) {
+                bStatus.textContent = "● YAYIN BEKLENİYOR";
+                bStatus.className = "text-slate-400";
+                bList.innerHTML = '<p class="text-xs text-slate-400 py-2">Bülten boş. Gönderdiğin her haberin manşeti burada ajansının adıyla yayınlanır.</p>';
+            } else {
+                bStatus.textContent = "● YAYINDA";
+                bStatus.className = "text-cyan-400";
+                bList.innerHTML = "";
+                for (var j = 0; j < state.bulletin.length; j++) {
+                    var item = state.bulletin[j];
+                    var card = document.createElement("div");
+                    card.className = "bg-slate-900 border border-cyan-500/30 p-3 rounded-2xl space-y-1";
+
+                    var topRow = document.createElement("div");
+                    topRow.className = "flex items-center justify-between";
+
+                    var agSpan = document.createElement("span");
+                    agSpan.className = "bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded uppercase";
+                    agSpan.textContent = item.agency;
+
+                    var tmSpan = document.createElement("span");
+                    tmSpan.className = "text-[10px] font-mono text-slate-400";
+                    tmSpan.textContent = item.time;
+
+                    topRow.appendChild(agSpan);
+                    topRow.appendChild(tmSpan);
+
+                    var hP = document.createElement("p");
+                    hP.className = "text-sm font-bold text-white";
+                    hP.textContent = item.headline;
+
+                    var locP = document.createElement("p");
+                    locP.className = "text-[11px] text-cyan-300";
+                    locP.textContent = "📍 " + item.location;
+
+                    card.appendChild(topRow);
+                    card.appendChild(hP);
+                    card.appendChild(locP);
+                    bList.appendChild(card);
+                }
+            }
+
+            // Görev kartları
+            var tContainer = document.getElementById("home-tasks-list");
+            tContainer.innerHTML = "";
+            for (var k = 1; k <= 4; k++) {
+                (function(taskId) {
+                    var tState = state.tasks[taskId];
+                    var tInfo = TASKS[taskId];
+                    var locName = (tState.riddleSolved || tState.completed) ? tInfo.locationName : "Konum gizli";
+
+                    var row = document.createElement("div");
+                    if (tState.completed) {
+                        row.className = "glass-card p-4 rounded-2xl border-emerald-500/40 bg-emerald-950/20 cursor-pointer flex items-center justify-between";
+                        row.onclick = function() { openTask(taskId); };
+                        row.innerHTML = '<div class="flex items-center space-x-3.5"><div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-extrabold flex items-center justify-center">✓</div><div><h4 class="text-sm font-bold text-white">Görev ' + taskId + '</h4><p class="text-xs text-emerald-300">' + locName + '</p></div></div><span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">+' + tInfo.xp + ' XP</span>';
+                    } else if (tState.unlocked) {
+                        var actionText = tState.qrVerified ? "Kanıt yükle →" : (tState.riddleSolved ? "QR okut →" : "Bilmeceyi çöz →");
+                        row.className = "glass-card p-4 rounded-2xl border-2 border-cyan-400/70 bg-blue-950/40 cursor-pointer flex items-center justify-between";
+                        row.onclick = function() { openTask(taskId); };
+                        row.innerHTML = '<div class="flex items-center space-x-3.5"><div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-slate-950 font-extrabold flex items-center justify-center">' + taskId + '</div><div><h4 class="text-sm font-bold text-white">Görev ' + taskId + '</h4><p class="text-xs text-cyan-300">' + locName + '</p></div></div><span class="text-xs font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-400/30 px-3 py-1 rounded-full">' + actionText + '</span>';
+                    } else {
+                        row.className = "p-4 rounded-2xl border-2 border-dashed border-slate-800 bg-slate-900/30 opacity-60 cursor-not-allowed flex items-center justify-between";
+                        row.onclick = function() { showToast("Bir görevi bitirmeden sonrakine geçemezsin!", "error"); };
+                        row.innerHTML = '<div class="flex items-center space-x-3.5"><div class="w-10 h-10 rounded-2xl bg-slate-800 text-slate-500 font-bold flex items-center justify-center">🔒</div><div><h4 class="text-sm font-bold text-slate-400">Görev ' + taskId + '</h4><p class="text-xs text-slate-500">Konum gizli</p></div></div><span class="text-[11px] font-semibold text-slate-500">Kilitli</span>';
+                    }
+                    tContainer.appendChild(row);
+                })(k);
+            }
+        }
+
+        function openTask(taskId) {
+            activeTaskId = taskId;
+            refreshTaskUI();
+            showScreen("screen-task");
+        }
+
+        function refreshTaskUI() {
+            var tInfo = TASKS[activeTaskId];
+            var tState = state.tasks[activeTaskId];
+
+            document.getElementById("task-number-badge").textContent = "Görev " + activeTaskId + "/4";
+            var stepTxt = tState.completed ? "Tamamlandı" : (tState.qrVerified ? "Kanıt yükle" : (tState.riddleSolved ? "Yol tarifi ve QR" : "Bilmeceyi çöz"));
+            document.getElementById("task-step-badge").textContent = stepTxt;
+            document.getElementById("task-header-title").textContent = (tState.riddleSolved || tState.completed) ? tInfo.locationName : "Konum gizli";
+
+            // Adım 1: Bilmece
+            document.getElementById("task-riddle-text").textContent = tInfo.riddle;
+            if (tState.riddleSolved) {
+                document.getElementById("riddle-form-area").classList.add("hidden");
+                var solvedBox = document.getElementById("riddle-solved-area");
+                solvedBox.classList.remove("hidden");
+                solvedBox.textContent = "✓ Cevap: " + tInfo.locationName;
+            } else {
+                document.getElementById("riddle-form-area").classList.remove("hidden");
+                document.getElementById("riddle-solved-area").classList.add("hidden");
+                document.getElementById("riddle-input").value = "";
+                var hintEl = document.getElementById("riddle-hint-text");
+                if (tState.wrongAttempts >= 2) {
+                    hintEl.textContent = "💡 " + tInfo.hint;
+                    hintEl.className = "text-xs text-cyan-300 font-semibold";
+                } else {
+                    hintEl.textContent = "Büyük-küçük harf önemli değil. İki yanlış cevaptan sonra ipucu açılır.";
+                    hintEl.className = "text-[11px] text-slate-400";
+                }
+            }
+
+            // Adım 2: Yol Tarifi
+            var s2 = document.getElementById("step2-card");
+            if (tState.riddleSolved) {
+                s2.classList.remove("opacity-40", "pointer-events-none");
+                document.getElementById("task-route-text").textContent = tInfo.route;
+                document.getElementById("task-map-link").href = tInfo.mapUrl;
+            } else {
+                s2.classList.add("opacity-40", "pointer-events-none");
+                document.getElementById("task-route-text").textContent = "Bilmeceyi çözdüğünde yol tarifi burada açılır.";
+            }
+
+            // Adım 3: QR Kodu Okut
+            var s3 = document.getElementById("step3-card");
+            if (tState.riddleSolved) {
+                s3.classList.remove("opacity-40", "pointer-events-none");
+            } else {
+                s3.classList.add("opacity-40", "pointer-events-none");
+            }
+            document.getElementById("short-code-input").placeholder = "KOD (Örn: " + tInfo.shortCode + ")";
+            document.getElementById("short-code-input").value = "";
+
+            if (tState.qrVerified) {
+                document.getElementById("qr-form-area").classList.add("hidden");
+                var qrOk = document.getElementById("qr-verified-area");
+                qrOk.classList.remove("hidden");
+                qrOk.textContent = "✓ Lokasyon QR Kodu Doğrulandı (" + tInfo.shortCode + ")";
+            } else {
+                document.getElementById("qr-form-area").classList.remove("hidden");
+                document.getElementById("qr-verified-area").classList.add("hidden");
+            }
+
+            // Adım 4: Kanıt Yükle
+            var s4 = document.getElementById("step4-card");
+            if (tState.qrVerified) {
+                s4.classList.remove("opacity-40", "pointer-events-none");
+            } else {
+                s4.classList.add("opacity-40", "pointer-events-none");
+            }
+
+            document.getElementById("task-xp-pill").textContent = tInfo.difficulty + " • +" + tInfo.xp + " XP";
+            document.getElementById("task-assignment-title").textContent = tInfo.assignmentTitle;
+            document.getElementById("task-editor-note").textContent = tInfo.editorNote;
+
+            var tipsUl = document.getElementById("task-tips-list");
+            tipsUl.innerHTML = "";
+            for (var m = 0; m < tInfo.tips.length; m++) {
+                var li = document.createElement("li");
+                li.textContent = tInfo.tips[m];
+                tipsUl.appendChild(li);
+            }
+
+            // Form değerlerini doldur
+            document.getElementById("ev-consent").checked = tState.consent;
+            document.getElementById("w-ne").value = tState.w5h1.ne;
+            document.getElementById("w-kim").value = tState.w5h1.kim;
+            document.getElementById("w-nerede").value = tState.w5h1.nerede;
+            document.getElementById("w-nezaman").value = tState.w5h1.nezaman;
+            document.getElementById("w-nasil").value = tState.w5h1.nasil;
+            document.getElementById("w-neden").value = tState.w5h1.neden;
+            document.getElementById("ev-newstext").value = tState.newsText;
+            document.getElementById("ev-headline").value = tState.headline;
+
+            updateEvidenceStatusUI();
+        }
+
+        function checkRiddleAnswer() {
+            var val = cleanTurkish(document.getElementById("riddle-input").value);
+            var tInfo = TASKS[activeTaskId];
+            var tState = state.tasks[activeTaskId];
+
+            var matched = false;
+            for (var i = 0; i < tInfo.answers.length; i++) {
+                var ans = cleanTurkish(tInfo.answers[i]);
+                if (val && (val.indexOf(ans) !== -1 || (val.length >= 4 && ans.indexOf(val) !== -1))) {
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (matched) {
+                tState.riddleSolved = true;
+                saveState();
+                showToast("Doğru cevap! Yol tarifi ve QR adımı açıldı.", "success");
+            } else {
+                tState.wrongAttempts++;
+                saveState();
+                showToast(tState.wrongAttempts >= 2 ? "Yanlış cevap. İpucu açıldı!" : "Yanlış cevap, tekrar dene!", "error");
+            }
+            refreshTaskUI();
+        }
+
+        function verifyShortCodeInput() {
+            var val = document.getElementById("short-code-input").value;
+            handleQrCode(val);
+        }
+
+        function handleQrCode(rawCode) {
+            var code = (rawCode || "").trim().toUpperCase();
+            if (!state.agencyName) {
+                showToast("Önce ajans adını girerek ajansını kur!", "error");
+                return;
+            }
+
+            var foundTask = null;
+            for (var id in TASKS) {
+                if (TASKS[id].shortCode === code) {
+                    foundTask = TASKS[id];
+                    break;
+                }
+            }
+
+            if (!foundTask) {
+                showToast("Geçersiz kod! Lütfen kısa kodu (Örn: EGE-101) kontrol et.", "error");
+                return;
+            }
+
+            var tState = state.tasks[foundTask.id];
+            if (!tState.unlocked) {
+                showToast("Bu kod ileriki bir göreve ait! Önce mevcut görevi bitir.", "error");
+                return;
+            }
+            if (!tState.riddleSolved) {
+                showToast("Önce bilmeceyi çöz!", "error");
+                openTask(foundTask.id);
+                return;
+            }
+
+            tState.qrVerified = true;
+            saveState();
+            showToast(foundTask.locationName + " (" + code + ") doğrulandı! Kanıt yükleme açıldı.", "success");
+            openTask(foundTask.id);
+        }
+
+        function scanQrFile(inputEl) {
+            var file = inputEl.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement("canvas");
+                    var ctx = canvas.getContext("2d");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    if (typeof jsQR !== "undefined") {
+                        var res = jsQR(imgData.data, imgData.width, imgData.height);
+                        if (res && res.data) {
+                            handleQrCode(res.data);
+                        } else {
+                            showToast("QR okunamadı. Altındaki kısa kodu (Örn: EGE-101) kutuya yaz.", "error");
+                        }
+                    } else {
+                        showToast("Lütfen kısa kodu kutuya yazın.", "error");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function listenEditorNote() {
+            var note = TASKS[activeTaskId].editorNote;
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+                var u = new SpeechSynthesisUtterance(note);
+                u.lang = "tr-TR";
+                window.speechSynthesis.speak(u);
+                showToast("Görev notu sesli okunuyor...", "info");
+            } else {
+                showToast("Tarayıcınız sesli okumayı desteklemiyor.", "error");
+            }
+        }
+
+        function onPhotoSelected(inputEl) {
+            var file = inputEl.files[0];
+            if (!file) return;
+            var tState = state.tasks[activeTaskId];
+            if (file.type.indexOf("image/") !== 0) {
+                tState.photoName = file.name;
+                tState.photoError = "Bu adım için fotoğraf gerekiyor.";
+                showToast("Bu adım için fotoğraf gerekiyor. Video yükleyemezsin.", "error");
+            } else {
+                tState.photoName = file.name;
+                tState.photoError = "";
+                showToast("Haber fotoğrafı eklendi.", "success");
+            }
+            saveState();
+            updateEvidenceStatusUI();
+        }
+
+        function clearPhoto() {
+            var tState = state.tasks[activeTaskId];
+            tState.photoName = "";
+            tState.photoError = "";
+            document.getElementById("ev-photo-input").value = "";
+            saveState();
+            updateEvidenceStatusUI();
+        }
+
+        function onMediaSelected(inputEl) {
+            var file = inputEl.files[0];
+            if (!file) return;
+            var tState = state.tasks[activeTaskId];
+            var url = URL.createObjectURL(file);
+            var media = document.createElement(file.type.indexOf("video/") === 0 ? "video" : "audio");
+            media.preload = "metadata";
+            media.onloadedmetadata = function() {
+                URL.revokeObjectURL(url);
+                var dur = Math.round(media.duration || 0);
+                tState.mediaName = file.name;
+                tState.mediaDuration = dur;
+                if (dur < 20) {
+                    var mins = Math.floor(dur / 60);
+                    var rem = dur % 60;
+                    var str = mins + ":" + (rem < 10 ? "0" + rem : rem);
+                    tState.mediaError = str + " çok kısa; en az 0:20 olmalı.";
+                    showToast(tState.mediaError, "error");
+                } else {
+                    tState.mediaError = "";
+                    showToast("Röportaj kaydı eklendi.", "success");
+                }
+                saveState();
+                updateEvidenceStatusUI();
+            };
+            media.src = url;
+        }
+
+        function clearMedia() {
+            var tState = state.tasks[activeTaskId];
+            tState.mediaName = "";
+            tState.mediaDuration = 0;
+            tState.mediaError = "";
+            document.getElementById("ev-media-input").value = "";
+            saveState();
+            updateEvidenceStatusUI();
+        }
+
+        function onEvidenceChange() {
+            var tState = state.tasks[activeTaskId];
+            tState.consent = document.getElementById("ev-consent").checked;
+            tState.w5h1.ne = document.getElementById("w-ne").value;
+            tState.w5h1.kim = document.getElementById("w-kim").value;
+            tState.w5h1.nerede = document.getElementById("w-nerede").value;
+            tState.w5h1.nezaman = document.getElementById("w-nezaman").value;
+            tState.w5h1.nasil = document.getElementById("w-nasil").value;
+            tState.w5h1.neden = document.getElementById("w-neden").value;
+            tState.newsText = document.getElementById("ev-newstext").value;
+            tState.headline = document.getElementById("ev-headline").value;
+            saveState();
+            updateEvidenceStatusUI();
+        }
+
+        function setBadge(elId, isOk) {
+            var el = document.getElementById(elId);
+            if (isOk) {
+                el.innerHTML = '<span class="text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">Tamam</span>';
+            } else {
+                el.innerHTML = '<span class="text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full">Eksik</span>';
+            }
+        }
+
+        function updateEvidenceStatusUI() {
+            var tState = state.tasks[activeTaskId];
+            var missing = [];
+
+            setBadge("badge-consent", tState.consent);
+            if (!tState.consent) missing.push("İzin onayı");
+
+            var photoOk = Boolean(tState.photoName && !tState.photoError);
+            setBadge("badge-photo", photoOk);
+            if (!photoOk) missing.push("Haber fotoğrafı");
+
+            var pErr = document.getElementById("ev-photo-error");
+            if (tState.photoError) {
+                pErr.textContent = "⚠️ " + tState.photoError;
+                pErr.classList.remove("hidden");
+            } else {
+                pErr.classList.add("hidden");
+            }
+
+            var pInfo = document.getElementById("ev-photo-info");
+            if (tState.photoName) {
+                pInfo.classList.remove("hidden");
+                pInfo.classList.add("flex");
+                document.getElementById("ev-photo-name").textContent = "📷 " + tState.photoName;
+            } else {
+                pInfo.classList.add("hidden");
+                pInfo.classList.remove("flex");
+            }
+
+            var w = tState.w5h1;
+            var wOk = Boolean(w.ne.trim() && w.kim.trim() && w.nerede.trim() && w.nezaman.trim() && w.nasil.trim() && w.neden.trim());
+            setBadge("badge-5n1k", wOk);
+            if (!wOk) missing.push("5N1K kartı");
+
+            var nLen = tState.newsText.trim().length;
+            var nOk = nLen >= 300;
+            setBadge("badge-newstext", nOk);
+            if (!nOk) missing.push("Haber metni (en az 300 kr)");
+            document.getElementById("counter-newstext").textContent = tState.newsText.length + " / en az 300 karakter";
+
+            var mErr = document.getElementById("ev-media-error");
+            if (tState.mediaError) {
+                mErr.textContent = "⚠️ " + tState.mediaError;
+                mErr.classList.remove("hidden");
+                missing.push("Röportaj kaydı süresi");
+            } else {
+                mErr.classList.add("hidden");
+            }
+
+            var mInfo = document.getElementById("ev-media-info");
+            if (tState.mediaName) {
+                mInfo.classList.remove("hidden");
+                mInfo.classList.add("flex");
+                document.getElementById("ev-media-name").textContent = "🎙️ " + tState.mediaName + " (" + tState.mediaDuration + " sn)";
+            } else {
+                mInfo.classList.add("hidden");
+                mInfo.classList.remove("flex");
+            }
+
+            var hLen = tState.headline.trim().length;
+            var hOk = hLen >= 20 && hLen <= 80;
+            setBadge("badge-headline", hOk);
+            if (!hOk) missing.push("Manşet (20-80 kr)");
+            document.getElementById("counter-headline").textContent = tState.headline.length + " karakter (20–80)";
+
+            var sumEl = document.getElementById("missing-summary");
+            var subBtn = document.getElementById("submit-evidence-btn");
+            var nxtBtn = document.getElementById("next-task-btn");
+
+            if (missing.length === 0) {
+                sumEl.textContent = "✓ Tüm zorunlu kanıtlar tamam!";
+                sumEl.className = "text-xs font-semibold text-emerald-400";
+            } else {
+                sumEl.textContent = "Eksik: " + missing.join(", ");
+                sumEl.className = "text-xs font-semibold text-amber-300";
+            }
+
+            if (tState.completed) {
+                subBtn.disabled = true;
+                subBtn.textContent = "✓ Bu Görevin Haberi Yayında";
+                nxtBtn.disabled = false;
+                nxtBtn.className = "w-full py-3 rounded-2xl font-bold text-xs border bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 cursor-pointer";
+                nxtBtn.textContent = activeTaskId < 4 ? ("Görev " + (activeTaskId + 1) + "'e geç →") : "🏆 Bülten Ekranına Dön";
+            } else {
+                subBtn.disabled = (missing.length > 0);
+                subBtn.textContent = "Kanıtı gönder";
+                nxtBtn.disabled = true;
+                nxtBtn.className = "w-full py-3 rounded-2xl font-bold text-xs border bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed";
+                nxtBtn.textContent = activeTaskId < 4 ? ("Görev " + (activeTaskId + 1) + "'e geç →") : "🏆 Bülten Ekranına Dön";
+            }
+        }
+
+        function submitTaskEvidence() {
+            var tState = state.tasks[activeTaskId];
+            var tInfo = TASKS[activeTaskId];
+            if (tState.completed) return;
+
+            tState.completed = true;
+            state.xp += tInfo.xp;
+            state.bulletin.unshift({
+                agency: state.agencyName,
+                headline: tState.headline.trim(),
+                location: tInfo.locationName,
+                time: new Date().toLocaleTimeString("tr-TR")
+            });
+
+            if (activeTaskId < 4) {
+                state.tasks[activeTaskId + 1].unlocked = true;
+            }
+            saveState();
+            document.getElementById("xp-text").textContent = state.xp + " / 330 XP";
+            showToast("Haber bültende yayına girdi! +" + tInfo.xp + " XP kazandın.", "success");
+            updateEvidenceStatusUI();
+        }
+
+        function goNextTask() {
+            if (activeTaskId < 4) {
+                openTask(activeTaskId + 1);
+            } else {
+                goHome();
+            }
+        }
+
+        function loadDiaryInputs() {
+            var d = state.diary || {};
+            var keys = ["p1","r1","d1","p2","r2","d2","p3","r3","d3"];
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                var el = document.getElementById("diary-" + k);
+                if (el) el.value = d[k] || "";
+            }
+        }
+
+        function saveDiaryInputs() {
+            state.diary = {};
+            var keys = ["p1","r1","d1","p2","r2","d2","p3","r3","d3"];
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                var el = document.getElementById("diary-" + k);
+                state.diary[k] = el ? el.value : "";
+            }
+            saveState();
+        }
+
+        function copyDiaryReport() {
+            var txt = "EGE EKSPRES TESLİM RAPORU - Ajans: " + state.agencyName + " (" + state.xp + " XP)\n";
+            for (var i = 1; i <= 4; i++) {
+                txt += "\nGörev " + i + " Manşet: " + (state.tasks[i].headline || "-");
+                txt += "\nGörev " + i + " Metin: " + (state.tasks[i].newsText || "-") + "\n";
+            }
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(txt);
+                showToast("Rapor panoya kopyalandı!", "success");
+            }
+        }
+
+        function openAdminModal() {
+            var pass = prompt("Yönetici şifresini girin (1234):");
+            if (pass === "1234") {
+                showScreen("screen-admin");
+            } else if (pass !== null) {
+                showToast("Hatalı şifre!", "error");
+            }
+        }
+
+        function resetGameData() {
+            localStorage.removeItem(STORAGE_KEY);
+            state = makeDefaultState();
+            document.getElementById("agency-name-input").value = "";
+            document.getElementById("live-agency-preview").textContent = "Ajansınızın adı burada yayınlanacak";
+            showToast("Tüm oyun verileri sıfırlandı.", "info");
+            showScreen("screen-welcome");
+        }
+
+        // İlk Yükleme
+        loadDiaryInputs();
+        if (state.agencyName) {
+            goHome();
+        } else {
+            showScreen("screen-welcome");
+        }
+
+        setInterval(function() {
+            var el = document.getElementById("clock-time");
+            if (el) el.textContent = new Date().toLocaleTimeString("tr-TR");
+        }, 1000);
+    </script>
+</body>
+</html>
